@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kostendashboard — August Vermeylenlaan 5/7</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy:   #0B1D35;
+      --navy2:  #112240;
+      --navy3:  #1E3A5F;
+      --amber:  #D97706;
+      --amber2: #F59E0B;
+      --green:  #059669;
+      --red:    #DC2626;
+      --blue:   #2563EB;
+      --slate:  #64748B;
+      --light:  #F1F5F9;
+      --white:  #FFFFFF;
+      --border: #CBD5E1;
+      --text:   #1E293B;
+      --muted:  #64748B;
+      --card-shadow: 0 2px 12px rgba(11,29,53,.07);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Source Sans 3', sans-serif;
+      background: var(--light);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    .page-header {
+      background: var(--navy);
+      color: var(--white);
+      padding: 28px 48px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 32px;
+      border-bottom: 3px solid var(--amber);
+    }
+    .header-left h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: .3px;
+      line-height: 1.15;
+    }
+    .header-left .subtitle {
+      margin-top: 5px;
+      font-size: 13.5px;
+      font-weight: 300;
+      color: rgba(255,255,255,.65);
+      letter-spacing: .4px;
+    }
+    .header-right {
+      text-align: right;
+      font-size: 12px;
+      color: rgba(255,255,255,.55);
+      line-height: 1.7;
+    }
+    .header-right strong { color: rgba(255,255,255,.85); font-weight: 500; }
+    .badge-period {
+      display: inline-block;
+      background: var(--amber);
+      color: var(--white);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 3px;
+      margin-bottom: 6px;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main { max-width: 1380px; margin: 0 auto; padding: 36px 40px 60px; }
+
+    /* ── SECTION TITLES ── */
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--navy);
+      letter-spacing: .2px;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title .dot {
+      width: 8px; height: 8px;
+      background: var(--amber);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── KPI CARDS ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+    .kpi-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 22px;
+      box-shadow: var(--card-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .kpi-card.y2022::before { background: #94A3B8; }
+    .kpi-card.y2023::before { background: #60A5FA; }
+    .kpi-card.y2024::before { background: #34D399; }
+    .kpi-card.y2025::before { background: var(--amber2); }
+    .kpi-card.y2026::before { background: linear-gradient(90deg, var(--blue), var(--green)); }
+    .kpi-card .year-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .kpi-card .amount {
+      font-family: 'DM Mono', monospace;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--navy);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .kpi-card .amount span { font-size: 13px; font-weight: 300; }
+    .kpi-card .change {
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .change.up { color: var(--red); }
+    .change.down { color: var(--green); }
+    .change.flat { color: var(--muted); }
+    .kpi-card.y2026 .amount { color: var(--blue); }
+    .kpi-note { font-size: 11px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
+
+    /* ── TWO-COL LAYOUT ── */
+    .two-col { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; margin-bottom: 36px; }
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: var(--card-shadow);
+    }
+
+    /* ── CHARTS ── */
+    .chart-wrap { position: relative; }
+    canvas { max-width: 100%; }
+
+    /* ── FULL-WIDTH SECTION ── */
+    .full-section { margin-bottom: 36px; }
+    .full-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: var(--card-shadow);
+    }
+
+    /* ── YOY TABLE ── */
+    .yoy-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .yoy-table thead th {
+      background: var(--navy);
+      color: var(--white);
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 10px 14px;
+      text-align: right;
+    }
+    .yoy-table thead th:first-child { text-align: left; border-radius: 4px 0 0 0; }
+    .yoy-table thead th:last-child { border-radius: 0 4px 0 0; }
+    .yoy-table tbody tr { border-bottom: 1px solid #F1F5F9; }
+    .yoy-table tbody tr:hover { background: #F8FAFC; }
+    .yoy-table td { padding: 9px 14px; text-align: right; color: var(--text); }
+    .yoy-table td:first-child { text-align: left; font-weight: 500; color: var(--navy); }
+    .yoy-table tfoot td {
+      padding: 11px 14px;
+      font-weight: 600;
+      font-size: 12px;
+      background: #F8FAFC;
+      border-top: 2px solid var(--border);
+      text-align: right;
+    }
+    .yoy-table tfoot td:first-child { text-align: left; color: var(--navy); }
+    .pill {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 11.5px;
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+    }
+    .pill.pos { background: #FEE2E2; color: var(--red); }
+    .pill.neg { background: #D1FAE5; color: #065F46; }
+    .pill.neu { background: #F1F5F9; color: var(--slate); }
+    .pill.big { background: #FEF3C7; color: #92400E; font-weight: 700; }
+    .avg-col { color: var(--blue) !important; font-weight: 600 !important; font-family: 'DM Mono', monospace; }
+
+    /* ── EXCEPTIONAL COSTS ── */
+    .exc-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+    .exc-year-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .exc-year-header {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--white);
+      letter-spacing: .4px;
+    }
+    .exc-year-header.y2022 { background: #475569; }
+    .exc-year-header.y2023 { background: #2563EB; }
+    .exc-year-header.y2024 { background: #059669; }
+    .exc-year-header.y2025 { background: #D97706; }
+    .exc-item {
+      padding: 8px 14px;
+      border-bottom: 1px solid #F1F5F9;
+      font-size: 12px;
+    }
+    .exc-item:last-child { border-bottom: none; }
+    .exc-item .desc { color: var(--text); line-height: 1.35; margin-bottom: 2px; }
+    .exc-item .amt {
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+      font-size: 12px;
+      color: var(--amber);
+    }
+    .exc-total {
+      padding: 9px 14px;
+      background: #FAFAFA;
+      border-top: 2px solid var(--border);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--navy);
+      display: flex;
+      justify-content: space-between;
+    }
+    .exc-total span { font-family: 'DM Mono', monospace; color: var(--amber); }
+
+    /* ── FORECAST ── */
+    .forecast-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; margin-bottom: 36px; }
+    .forecast-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .forecast-table thead th {
+      background: var(--navy3);
+      color: var(--white);
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      padding: 9px 13px;
+      text-align: right;
+    }
+    .forecast-table thead th:first-child { text-align: left; }
+    .forecast-table tbody tr { border-bottom: 1px solid #F1F5F9; }
+    .forecast-table tbody tr:hover { background: #F8FAFC; }
+    .forecast-table td { padding: 8px 13px; font-size: 13px; text-align: right; }
+    .forecast-table td:first-child { text-align: left; font-weight: 500; color: var(--navy); }
+    .forecast-table .forecast-val {
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+      color: var(--blue);
+    }
+    .forecast-table tfoot td {
+      padding: 10px 13px;
+      font-weight: 700;
+      background: #EFF6FF;
+      border-top: 2px solid #BFDBFE;
+    }
+    .forecast-table tfoot td.forecast-val { color: var(--blue); font-size: 15px; }
+    .change-chip {
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .change-chip.up { background: #FEE2E2; color: var(--red); }
+    .change-chip.down { background: #D1FAE5; color: #065F46; }
+
+    /* forecast assumptions box */
+    .assumption-box {
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      border-radius: 8px;
+      padding: 18px 20px;
+      font-size: 13px;
+      line-height: 1.6;
+      height: fit-content;
+    }
+    .assumption-box h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #92400E;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+    .assumption-box ul { padding-left: 16px; color: #78350F; }
+    .assumption-box ul li { margin-bottom: 5px; }
+    .assumption-box .total-block {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid #FDE68A;
+    }
+    .assumption-box .total-block .lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #92400E; }
+    .assumption-box .total-block .val {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--blue);
+      line-height: 1.1;
+    }
+    .assumption-box .total-block .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* ── DISCLAIMER ── */
+    .disclaimer {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--blue);
+      border-radius: 0 6px 6px 0;
+      padding: 14px 18px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.65;
+      margin-bottom: 32px;
+    }
+    .disclaimer strong { color: var(--navy); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--navy);
+      color: rgba(255,255,255,.45);
+      font-size: 11.5px;
+      padding: 18px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    footer strong { color: rgba(255,255,255,.7); }
+
+    @media (max-width: 1100px) {
+      .kpi-grid { grid-template-columns: repeat(3,1fr); }
+      .two-col, .forecast-grid { grid-template-columns: 1fr; }
+      .exc-grid { grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 700px) {
+      .main { padding: 20px 16px 40px; }
+      .page-header { flex-direction: column; align-items: flex-start; padding: 20px 20px; }
+      .kpi-grid { grid-template-columns: repeat(2,1fr); }
+      .exc-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
+<header class="page-header">
+  <div class="header-left">
+    <div class="badge-period">Kostendashboard · 2022–2025 + Prognose 2026</div>
+    <h1>August Vermeylenlaan 5/7</h1>
+    <div class="subtitle">2050 Antwerpen &nbsp;·&nbsp; VME · KBO 0817.372.874 &nbsp;·&nbsp; Afgedrukt: 15 april 2026</div>
+  </div>
+  <div class="header-right">
+    <strong>Syndicus</strong><br>
+    Algemeen Beheer 2.0 B.V.<br>
+    Italiëlei 221 · 2000 Antwerpen<br>
+    Tel. 03 254 29 31 · BIV 202.172
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- ═══ KPI CARDS ═══ -->
+  <div class="kpi-grid">
+    <div class="kpi-card y2022">
+      <div class="year-label">2022</div>
+      <div class="amount">€ 406.956 <span>netto</span></div>
+      <div class="change flat">— Basisjaar</div>
+      <div class="kpi-note">Debet: € 516.841<br>Recuperaties: € 109.885</div>
+    </div>
+    <div class="kpi-card y2023">
+      <div class="year-label">2023</div>
+      <div class="amount">€ 327.773 <span>netto</span></div>
+      <div class="change down">▼ −19,5% vs 2022</div>
+      <div class="kpi-note">Debet: € 388.179<br>Recuperaties: € 60.406</div>
+    </div>
+    <div class="kpi-card y2024">
+      <div class="year-label">2024</div>
+      <div class="amount">€ 381.488 <span>netto</span></div>
+      <div class="change up">▲ +16,4% vs 2023</div>
+      <div class="kpi-note">Debet: € 517.152<br>Recuperaties: € 135.664</div>
+    </div>
+    <div class="kpi-card y2025">
+      <div class="year-label">2025 *</div>
+      <div class="amount">€ 537.862 <span>netto</span></div>
+      <div class="change up">▲ +40,9% vs 2024</div>
+      <div class="kpi-note">*Ind. verbruik verwarming (~€71K) nog niet verrekend → gecorrigeerd ≈ €467K</div>
+    </div>
+    <div class="kpi-card y2026">
+      <div class="year-label">2026 Prognose</div>
+      <div class="amount">€ 413.200 <span>excl. uitsch.</span></div>
+      <div class="change flat">Structurele basis · +3% inflatie</div>
+      <div class="kpi-note">Geen rekening met niet-herhaalbare uitzonderingen</div>
+    </div>
+  </div>
+
+  <!-- ═══ DISCLAIMER ═══ -->
+  <div class="disclaimer">
+    <strong>Methodologische noot:</strong> Netto bedragen = debet minus credits (individueel verbruik verwarming, reservefondstussenkomsten, recuperaties).
+    De privatieve kosten (individueel stookverbruik via warmteverdelers) worden doorgerekend aan mede-eigenaars en verlagen het netto VME-saldo.
+    In 2022 bedroeg het individueel verbruik €100.813, in 2023 €43.117, in 2024 €71.294. Voor 2025 is dit nog niet afgerekend.
+    Voor vergelijkbaarheid wordt bij de trendlijn een <strong>gecorrigeerd 2025-totaal</strong> van ≈ €467.000 gehanteerd.
+  </div>
+
+  <!-- ═══ TRENDLIJN + DONUT ═══ -->
+  <div class="section-title"><span class="dot"></span> Kostentrendanalyse 2022–2026</div>
+  <div class="two-col" style="margin-bottom:36px;">
+    <div class="card">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Totale netto VME-kosten (gecorrigeerd voor individueel verwarmingsverbruik)</div>
+      <div class="chart-wrap" style="height:280px;">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Kostenverdeling 2025 — Debet per categorie</div>
+      <div class="chart-wrap" style="height:280px;">
+        <canvas id="donutChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STACKED BAR ═══ -->
+  <div class="full-section">
+    <div class="section-title"><span class="dot"></span> Kostenopbouw per categorie — 2022 t/m 2025 (debet)</div>
+    <div class="full-card">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Bruto uitgaven per kostensoort (excl. recuperaties). Klik op legenda-items om te filteren.</div>
+      <div class="chart-wrap" style="height:360px;">
+        <canvas id="stackedBar"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ YOY TABLE ═══ -->
+  <div class="full-section">
+    <div class="section-title"><span class="dot"></span> Jaarlijkse procentuele verandering per kostenpost</div>
+    <div class="full-card" style="overflow-x:auto;">
+      <table class="yoy-table">
+        <thead>
+          <tr>
+            <th style="min-width:180px;">Kostenpost</th>
+            <th>2022 (€)</th>
+            <th>2023 (€)</th>
+            <th>Δ '22→'23</th>
+            <th>2024 (€)</th>
+            <th>Δ '23→'24</th>
+            <th>2025 (€)</th>
+            <th>Δ '24→'25</th>
+            <th class="avg-col" style="color:#fff!important;">Gem. Δ/jaar</th>
+          </tr>
+        </thead>
+        <tbody id="yoyBody"></tbody>
+        <tfoot>
+          <tr>
+            <td>TOTAAL (debet)</td>
+            <td>516.841</td>
+            <td>388.179</td>
+            <td><span class="pill neg">−24,9%</span></td>
+            <td>517.152</td>
+            <td><span class="pill pos">+33,2%</span></td>
+            <td>568.859</td>
+            <td><span class="pill pos">+10,0%</span></td>
+            <td class="avg-col">+4,8%</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ UITZONDERLIJKE KOSTEN ═══ -->
+  <div class="full-section">
+    <div class="section-title"><span class="dot"></span> Uitzonderlijke & niet-herhaalbare kosten per jaar</div>
+    <div class="exc-grid" id="excGrid"></div>
+  </div>
+
+  <!-- ═══ PROGNOSE 2026 ═══ -->
+  <div class="section-title"><span class="dot"></span> Prognose 2026 — Structurele kosten</div>
+  <div class="forecast-grid">
+    <div class="card">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Verwachte terugkerende kosten 2026 (zonder uitzonderingen, +3% inflatiecorrectie)</div>
+      <table class="forecast-table">
+        <thead>
+          <tr>
+            <th>Kostenpost</th>
+            <th>Basis 2025 (recur.)</th>
+            <th>2026 Prognose</th>
+            <th>Δ</th>
+          </tr>
+        </thead>
+        <tbody id="forecastBody"></tbody>
+        <tfoot id="forecastFoot"></tfoot>
+      </table>
+    </div>
+    <div>
+      <div class="assumption-box">
+        <h4>Aannames &amp; uitsluitingen</h4>
+        <ul>
+          <li><strong>Niet meegerekend:</strong> terrasherstellingen 2025 (€39.699, lopend project)</li>
+          <li><strong>Niet meegerekend:</strong> rookgasvoering installatie 2025 (€25.355, eenmalig)</li>
+          <li><strong>Niet meegerekend:</strong> asbestattest gemeenschappelijke delen (€10.525)</li>
+          <li><strong>Niet meegerekend:</strong> LUMO architecten terrasrenovatie (€8.210)</li>
+          <li><strong>Niet meegerekend:</strong> elektrische conformiteit (gedeeltelijk reservefonds)</li>
+          <li><strong>Niet meegerekend:</strong> rookmelders installatie (€8.024, éénmalig)</li>
+          <li><strong>Bezoldigingen:</strong> genormaliseerd (excl. retroactieve SD Worx correcties ~€13K)</li>
+          <li><strong>Tuinen:</strong> Verde-contract stabiel, jaarlijkse indexatie +2% verwacht</li>
+          <li><strong>Energie:</strong> gas stabiel t.o.v. 2025; water genormaliseerd na afrekening</li>
+          <li><strong>Inflatie:</strong> +3% algemeen toegepast op structurele posten</li>
+        </ul>
+        <div class="total-block">
+          <div class="lbl">Totale prognose 2026</div>
+          <div class="val">€ 413.200</div>
+          <div class="sub">±10% betrouwbaarheidsinterval · excl. reserve-investeringen</div>
+        </div>
+      </div>
+      <div class="assumption-box" style="margin-top:16px; background:#EFF6FF; border-color:#BFDBFE;">
+        <h4 style="color:#1E3A8A;">Aandachtspunten 2026</h4>
+        <ul style="color:#1E40AF;">
+          <li>Terrasherstellingen (Finishing BV) lopen door → verwachte kosten fase 3+</li>
+          <li>Elektrische conformiteit (EWP Van Riet) nog lopend</li>
+          <li>Bezoldigingen stijgen structureel: personeel uitbreiding/loonindexatie</li>
+          <li>Waterfactuur 2025 bevat bijpassing meerdere periodes; 2026 normaliseert</li>
+          <li>Reservefonds: grote investeringen (sanitaire kranen, brandinstallatie) zijn deels getrokken</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ HORIZONTALE BAR YOY ═══ -->
+  <div class="full-section">
+    <div class="section-title"><span class="dot"></span> Verandering per categorie — 2024 naar 2025</div>
+    <div class="full-card">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Procentuele toename/afname van debet-bedragen per kostensoort (2024 → 2025). Positief = stijging.</div>
+      <div class="chart-wrap" style="height:340px;">
+        <canvas id="hBarChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end .main -->
+
+<footer>
+  <span>© 2026 Algemeen Beheer 2.0 B.V. — Italiëlei 221, 2000 Antwerpen · BIV 202.172</span>
+  <span><strong>August Vermeylenlaan 5/7</strong> · KBO 0817.372.874 · Kostendashboard gegenereerd 15/04/2026</span>
+</footer>
+
+<!-- ═══════════════════════════ SCRIPTS ═══════════════════════════ -->
+<script>
+/* ── DATA ───────────────────────────────────────────────── */
+const YEARS = ['2022','2023','2024','2025'];
+
+const CATEGORIES = [
+  { name: 'Energie (Gas+Water+Elek.)', color:'#F59E0B', v:[239023,123158,183940,213619] },
+  { name: 'Bezoldigingen & Personeel', color:'#8B5CF6', v:[24472,47622,41282,59665] },
+  { name: 'Erelonen & Beheer',         color:'#2563EB', v:[37198,52920,49790,71270] },
+  { name: 'Tuinen & Omgeving',         color:'#10B981', v:[16742,18807,35552,37133] },
+  { name: 'Sanitair & Verwarming',     color:'#EF4444', v:[12441,26432,72940,41531] },
+  { name: 'Verzekeringen',             color:'#6366F1', v:[19534,22799,23546,24894] },
+  { name: 'Liften',                    color:'#0EA5E9', v:[13378,19450,13705,13449] },
+  { name: 'Schoonmaak',                color:'#F472B6', v:[29365,6179,11444,4538] },
+  { name: 'Brandbeveiliging',          color:'#FB923C', v:[9493,1972,2619,25283] },
+  { name: 'Onderhoud & Renovatie',     color:'#78716C', v:[3218,10176,3692,40931] },
+];
+
+// Comparable trend: netto saldo, with 2025 corrected for missing individual consumption
+const TREND = {
+  labels: ['2022','2023','2024','2025 (gecorr.*)','2026 (prognose)'],
+  saldo:  [306143, 284656, 310194, 466862, 413200],
+};
+
+const YOY_ROWS = [
+  { cat:'Energie (Gas+Water+Elek.)',    v:[239023,123158,183940,213619] },
+  { cat:'Bezoldigingen & Personeel',   v:[24472,47622,41282,59665] },
+  { cat:'Erelonen & Beheer',           v:[37198,52920,49790,71270] },
+  { cat:'Tuinen & Omgeving',           v:[16742,18807,35552,37133] },
+  { cat:'Sanitair & Verwarming',       v:[12441,26432,72940,41531] },
+  { cat:'Verzekeringen',               v:[19534,22799,23546,24894] },
+  { cat:'Liften',                      v:[13378,19450,13705,13449] },
+  { cat:'Schoonmaak',                  v:[29365,6179,11444,4538] },
+  { cat:'Brandbeveiliging',            v:[9493,1972,2619,25283] },
+  { cat:'Onderhoud & Renovatie',       v:[3218,10176,3692,40931] },
+];
+
+const EXC_DATA = [
+  {
+    year:'2022', cls:'y2022',
+    items:[
+      { desc:'EPC gemeenschappelijke delen (EXPARTISE)', amt:1603 },
+      { desc:'Boomwerken: kapvergunning + verwijdering (TREE CAMP)', amt:2471 },
+      { desc:'Vervangen buitenkranen + wasmachine (VMT)', amt:3692 },
+      { desc:'Herstelling waterschade + deurcontroller lift', amt:1677 },
+      { desc:'RSZ correcties & jaarlijkse bijdragen (ACERTA)', amt:2458 },
+      { desc:'Erelonen advocaten Baluwe & co (meerdere zittingen)', amt:4617 },
+    ],
+    total: 16518
+  },
+  {
+    year:'2023', cls:'y2023',
+    items:[
+      { desc:'Camerabewaking installatie (ASEQ)', amt:4960 },
+      { desc:'FEDRIS – ambtshalve aansluiting (niet-verzekerde tewerkstelling)', amt:4937 },
+      { desc:'Vonnis VME-Mertens: procedurekosten + rolrecht', amt:6477 },
+      { desc:'Schakelbord & contactoren lift (ORA LIFT)', amt:4938 },
+      { desc:'Herstelling verwarmingsleidingen + kranen schachten', amt:4902 },
+      { desc:'RVM-vergoeding (nieuw systeem, Q1-Q4)', amt:12391 },
+      { desc:'Erelonen advocaten diverse dossiers (REYNS)', amt:6195 },
+    ],
+    total: 44800
+  },
+  {
+    year:'2024', cls:'y2024',
+    items:[
+      { desc:'Leveren & plaatsen sanitaire afsluitkranen (reservefonds)', amt:48527 },
+      { desc:'Sanitaire laadpomp vervangen (reservefonds)', amt:2543 },
+      { desc:'Schrob- & dweilmachine A&B Van Hoyweghen', amt:7259 },
+      { desc:'Camerabewaking krediet reservekapitaal', amt:-5239 },
+      { desc:'Expertise terrasproblematiek (BUREAU)', amt:1041 },
+      { desc:'AVRIO deskundige: vergaderingen & bijzondere AV', amt:2096 },
+      { desc:'Elektrische keuring industriële installatie (EWP Van Riet)', amt:1908 },
+    ],
+    total: 58135
+  },
+  {
+    year:'2025', cls:'y2025',
+    items:[
+      { desc:'Terrasherstellingen vorderingsstaten 1+2 (Finishing BV)', amt:36064 },
+      { desc:'Rookgasvoering leveren & plaatsen (BONDEC – 3 fases)', amt:25355 },
+      { desc:'Asbestattest gemeenschappelijke delen (EPC VAES)', amt:10525 },
+      { desc:'LUMO Architecten (achtergevel + terrasrenovatie)', amt:8210 },
+      { desc:'Rookmelders 66+20 stuks + installatie (PSC ELECTRO)', amt:8024 },
+      { desc:'Elektrische conformiteit EWP Van Riet (excl. reservefonds)', amt:17392 },
+      { desc:'Brandhaspels ANSUL (reservefonds, netto VME €0)', amt:8900 },
+      { desc:'Retroactieve SD Worx doelgroepverminderingen 2022-2024', amt:13215 },
+    ],
+    total: 127685
+  },
+];
+
+const FORECAST = [
+  { cat:'Water',                      base:55000, prognose:56700, note:'Genormaliseerd na 2025-afrekening' },
+  { cat:'Gas (verwarming + keuken)',   base:119000, prognose:118000, note:'Stabiele energieprijzen verwacht' },
+  { cat:'Elektriciteit',              base:18600, prognose:19200, note:'+3% tariefstijging' },
+  { cat:'Tuinen & Omgeving (Verde)',  base:37133, prognose:38500, note:'Verde-contract + 2% indexatie' },
+  { cat:'Bezoldigingen',              base:46500, prognose:48000, note:'Genorm. (excl. €13K retroact. SD Worx)' },
+  { cat:'Erelonen Syndicus',          base:25914, prognose:26700, note:'Jaarlijkse indexatie' },
+  { cat:'Erelonen Advocaten/Experts', base:7000,  prognose:7500,  note:'Excl. lopende renovatie-expertise' },
+  { cat:'Sanitair & Verwarming',      base:16000, prognose:17000, note:'Excl. rookgasvoering (éénmalig)' },
+  { cat:'Liften',                     base:13449, prognose:14000, note:'Jaarcontract + verwachte herstellingen' },
+  { cat:'Verzekeringen',              base:24894, prognose:25600, note:'+3% premiestijging' },
+  { cat:'Beheer & Admin & RVM',       base:20042, prognose:20600, note:'Stabiel' },
+  { cat:'Schoonmaak & Materieel',     base:4538,  prognose:4700,  note:'Stabiel (eigen personeel)' },
+  { cat:'Brandbeveiliging (contract)',base:3400,  prognose:3500,  note:'Excl. éénmalige installaties 2025' },
+  { cat:'Onderhoud Bouwwerken',       base:2000,  prognose:3000,  note:'Lichte verhoging ouder wordend gebouw' },
+  { cat:'Overige (fin., diversen)',   base:3500,  prognose:4000,  note:'Admin, bankkosten, varia' },
+  { cat:'Renovatie (structureel)',    base:3000,  prognose:3000,  note:'Excl. terrassen &amp; conformiteit' },
+  { cat:'Conciërgewoning onderhoud',  base:800,   prognose:900,   note:'Regulier onderhoud' },
+];
+
+/* ── HELPERS ── */
+const fmt = n => Math.round(n).toLocaleString('nl-BE');
+const pct = (a,b) => b===0 ? '—' : ((b-a)/Math.abs(a)*100).toFixed(1)+'%';
+const avgPct = arr => {
+  let sum=0, cnt=0;
+  for(let i=1;i<arr.length;i++){
+    if(arr[i-1]!==0){ sum+=(arr[i]-arr[i-1])/Math.abs(arr[i-1]); cnt++; }
+  }
+  return cnt===0?'—':((sum/cnt)*100).toFixed(1)+'%';
+};
+const pillClass = v => {
+  if(v==='—') return 'neu';
+  const n=parseFloat(v);
+  if(isNaN(n)) return 'neu';
+  if(Math.abs(n)>40) return 'big';
+  return n>0?'pos':'neg';
+};
+
+/* ── TREND LINE CHART ── */
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+new Chart(trendCtx, {
+  type:'line',
+  data:{
+    labels: TREND.labels,
+    datasets:[{
+      label:'Netto VME-kosten (€)',
+      data: TREND.saldo,
+      borderColor:'#2563EB',
+      backgroundColor:'rgba(37,99,235,.10)',
+      fill:true,
+      tension:.35,
+      pointBackgroundColor:['#64748B','#60A5FA','#34D399','#F59E0B','#2563EB'],
+      pointBorderColor:'#fff',
+      pointRadius:7,
+      pointHoverRadius:9,
+      borderWidth:2.5,
+      borderDash:[0,0],
+    }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        callbacks:{
+          label: ctx => ' € '+fmt(ctx.parsed.y),
+        },
+        backgroundColor:'#0B1D35',
+        titleColor:'#fff',
+        bodyColor:'rgba(255,255,255,.8)',
+        padding:12,
+      }
+    },
+    scales:{
+      y:{
+        ticks:{ callback:v=>'€'+Math.round(v/1000)+'K', font:{size:11} },
+        grid:{ color:'rgba(0,0,0,.05)' },
+      },
+      x:{ grid:{ display:false }, ticks:{ font:{size:11} } }
+    }
+  }
+});
+
+/* ── DONUT CHART ── */
+const donutCtx = document.getElementById('donutChart').getContext('2d');
+new Chart(donutCtx, {
+  type:'doughnut',
+  data:{
+    labels: CATEGORIES.map(c=>c.name),
+    datasets:[{
+      data: CATEGORIES.map(c=>c.v[3]),
+      backgroundColor: CATEGORIES.map(c=>c.color),
+      borderWidth:2,
+      borderColor:'#fff',
+    }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    cutout:'62%',
+    plugins:{
+      legend:{
+        position:'right',
+        labels:{ font:{size:11}, padding:10, boxWidth:12, usePointStyle:true }
+      },
+      tooltip:{
+        callbacks:{
+          label: ctx => ' € '+fmt(ctx.parsed)+' ('+((ctx.parsed/CATEGORIES.reduce((s,c)=>s+c.v[3],0))*100).toFixed(1)+'%)',
+        }
+      }
+    }
+  }
+});
+
+/* ── STACKED BAR ── */
+const sBarCtx = document.getElementById('stackedBar').getContext('2d');
+new Chart(sBarCtx, {
+  type:'bar',
+  data:{
+    labels: YEARS,
+    datasets: CATEGORIES.map(c=>({
+      label: c.name,
+      data: c.v,
+      backgroundColor: c.color,
+      stack:'s',
+    }))
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ position:'bottom', labels:{ font:{size:11}, padding:12, boxWidth:12, usePointStyle:true } },
+      tooltip:{
+        callbacks:{
+          label: ctx => ' '+ctx.dataset.label+': € '+fmt(ctx.parsed.y),
+        }
+      }
+    },
+    scales:{
+      y:{
+        stacked:true,
+        ticks:{ callback:v=>'€'+Math.round(v/1000)+'K', font:{size:11} },
+        grid:{ color:'rgba(0,0,0,.05)' },
+      },
+      x:{ stacked:true, grid:{ display:false } }
+    }
+  }
+});
+
+/* ── HORIZONTAL BAR 2024→2025 ── */
+const hBarLabels = CATEGORIES.map(c=>c.name);
+const hBarData   = CATEGORIES.map(c=>{
+  const a=c.v[2], b=c.v[3];
+  return a===0 ? 0 : +((b-a)/Math.abs(a)*100).toFixed(1);
+});
+const hBarColors = hBarData.map(v=>v>=0?'rgba(220,38,38,.75)':'rgba(5,150,105,.75)');
+const hBarCtx = document.getElementById('hBarChart').getContext('2d');
+new Chart(hBarCtx, {
+  type:'bar',
+  data:{
+    labels: hBarLabels,
+    datasets:[{
+      label:'% verandering 2024→2025',
+      data: hBarData,
+      backgroundColor: hBarColors,
+      borderRadius:4,
+    }]
+  },
+  options:{
+    indexAxis:'y',
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        callbacks:{ label: ctx => ' '+ctx.parsed.x.toFixed(1)+'%' }
+      }
+    },
+    scales:{
+      x:{
+        ticks:{ callback:v=>v+'%', font:{size:11} },
+        grid:{ color:'rgba(0,0,0,.05)' },
+      },
+      y:{ grid:{ display:false }, ticks:{ font:{size:11} } }
+    }
+  }
+});
+
+/* ── YOY TABLE ── */
+const tbody = document.getElementById('yoyBody');
+YOY_ROWS.forEach(r => {
+  const d23 = pct(r.v[0],r.v[1]);
+  const d24 = pct(r.v[1],r.v[2]);
+  const d25 = pct(r.v[2],r.v[3]);
+  const avg = avgPct(r.v);
+  tbody.innerHTML += `<tr>
+    <td>${r.cat}</td>
+    <td>€ ${fmt(r.v[0])}</td>
+    <td>€ ${fmt(r.v[1])}</td>
+    <td><span class="pill ${pillClass(d23)}">${d23>0?'+':''}${d23}</span></td>
+    <td>€ ${fmt(r.v[2])}</td>
+    <td><span class="pill ${pillClass(d24)}">${d24>0?'+':''}${d24}</span></td>
+    <td>€ ${fmt(r.v[3])}</td>
+    <td><span class="pill ${pillClass(d25)}">${d25>0?'+':''}${d25}</span></td>
+    <td class="avg-col">${avg>0?'+':''}${avg}</td>
+  </tr>`;
+});
+
+/* ── EXCEPTIONAL COSTS ── */
+const excGrid = document.getElementById('excGrid');
+EXC_DATA.forEach(ey => {
+  let itemsHtml = ey.items.map(it=>
+    `<div class="exc-item">
+      <div class="desc">${it.desc}</div>
+      <div class="amt">€ ${fmt(Math.abs(it.amt))}${it.amt<0?' (recuperatie)':''}</div>
+    </div>`
+  ).join('');
+  excGrid.innerHTML += `
+    <div class="exc-year-card">
+      <div class="exc-year-header ${ey.cls}">Uitzonderlijk ${ey.year}</div>
+      ${itemsHtml}
+      <div class="exc-total">Subtotaal uitzonderlijk <span>€ ${fmt(ey.total)}</span></div>
+    </div>`;
+});
+
+/* ── FORECAST TABLE ── */
+const fbody = document.getElementById('forecastBody');
+const ffoot = document.getElementById('forecastFoot');
+let totalBase=0, totalProg=0;
+FORECAST.forEach(r => {
+  const delta = ((r.prognose-r.base)/r.base*100).toFixed(1);
+  const cls   = delta>=0?'up':'down';
+  totalBase  += r.base;
+  totalProg  += r.prognose;
+  fbody.innerHTML += `<tr>
+    <td title="${r.note}">${r.cat} <span style="font-size:10px;color:var(--muted);" title="${r.note}">ⓘ</span></td>
+    <td style="font-family:'DM Mono',monospace;font-size:12.5px;color:var(--muted);">€ ${fmt(r.base)}</td>
+    <td class="forecast-val">€ ${fmt(r.prognose)}</td>
+    <td><span class="change-chip ${cls}">${delta>0?'+':''}${delta}%</span></td>
+  </tr>`;
+});
+const totalDelta = ((totalProg-totalBase)/totalBase*100).toFixed(1);
+ffoot.innerHTML = `<tr>
+  <td style="text-align:left;color:var(--navy);">TOTAAL PROGNOSE 2026</td>
+  <td style="font-family:'DM Mono',monospace;color:var(--slate);">€ ${fmt(totalBase)}</td>
+  <td class="forecast-val">€ ${fmt(totalProg)}</td>
+  <td><span class="change-chip ${totalDelta>=0?'up':'down'}">${totalDelta>0?'+':''}${totalDelta}%</span></td>
+</tr>`;
+
+</script>
+</body>
+</html>
